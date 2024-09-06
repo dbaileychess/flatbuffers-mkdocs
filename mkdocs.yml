@@ -1,0 +1,4 @@
+site_name: FlatBuffers
+site_url: https://dbaileychess.github.io/flatbuffers-mkdocs/
+theme:
+  name: material
