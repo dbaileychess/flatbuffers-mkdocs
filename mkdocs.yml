@@ -1,4 +1,17 @@
-site_name: FlatBuffers
+site_name: FlatBuffers Docs
 site_url: https://dbaileychess.github.io/flatbuffers-mkdocs/
 theme:
   name: material
+  logo: assets/flatbuffers_logo.svg
+  palette:
+    # Palette toggle for light mode
+    - scheme: default
+      toggle:
+        icon: material/brightness-7 
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
