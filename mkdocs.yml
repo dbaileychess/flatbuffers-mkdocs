@@ -20,6 +20,7 @@ theme:
   features:
     # Allows content tabs to link together
     - content.tabs.link
+    - navigation.expand
 
 markdown_extensions:
   - admonition
