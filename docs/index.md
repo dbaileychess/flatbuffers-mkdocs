@@ -1,6 +1,4 @@
-# FlatBuffers - Serialization Library
-
-## Overview
+# Overview
 
 FlatBuffers is an efficient cross platform serialization library for C++, C#, C,
 Go, Java, Kotlin, JavaScript, Lobster, Lua, TypeScript, PHP, Python, Rust and

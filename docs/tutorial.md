@@ -10,6 +10,14 @@ a complete workflow using flatbuffers in your application.
 3. Serializing data into a flatbuffer.
 4. Deserializing the flatbuffer.
 
+!!! note
+
+    The tutorial is structured so it is mostly language agnostic, with language
+    specifics in code blocks for providing more specific context. Additionally, 
+    this tries to cover the major parts and type system of flatbuffers to give a
+    general overview. Its not expected to be an exhaustive list of all features, 
+    or provide the best way to do things.
+
 ## FlatBuffers Schema (`.fbs`)
 
 To start working with FlatBuffers, you first need to create a
@@ -32,18 +40,17 @@ schema will be used for this tutorial, and is part of the FlatBuffers
 ## Compiling Schema to Code (`flatc`)
 
 After the schema file is written, the next step is to compile it to code in the
-languages you wish to work with. This is done with the
-[FlatBuffers Compiler](flatc.md) (`flatc`) which is one of the binaries built in
-the repo.
+languages you wish to work with. This is done by the
+[FlatBuffers Compiler](flatc.md) (`flatc`) which is one of the binaries of the
+repo.
 
 ### Building `flatc`
 
 ### Compiling
 
-To compile the schema, invoke `flatc` with the schema file and the language(s)
-flags you wish to generate code for. This compilation will generate file(s) that
-you include in your application code to serialize and deserialize the binary
-data.
+To compile the schema, invoke `flatc` with the schema file and the language
+flags you wish to generate code for. This compilation will generate files that
+you include in your application code to serialize and deserialize binary data.
 
 === "C++"
 
@@ -59,16 +66,16 @@ data.
 
 !!! tip
 
-    FlatBuffers can be deserialized in languages that differ from the language that serialized it. For purpose of this tutorial, it will assumed you will use the same language for serializing and deserializing.
+    It's possible to deserialize in languages that differ from the language that serialized it. For purpose of this tutorial, it assumes one language for both serializing and deserializing.
 
 ## Including Generated Code in your Application
 
-The generated files are then included/imported in your project to be built into
-your application. This is heavily dependent on your building workflow, but
-generally involves two things:
+The generated files are then included in your project to be built into your
+application. This is heavily dependent on your build system, but generally
+involves two things:
 
 1. Importing the generated code from `flatc` from the schema.
-2. Importing the "runtime" library for your language.
+2. Importing the "runtime" libraries for your language.
 
 === "C++"
 
@@ -84,15 +91,18 @@ generally involves two things:
     using MyGame.Sample; // The generated files from `flatc`
     ```
 
-## Serializing Data
+## Serialization
 
-Once all the imports are included, its time to start serializing some data!
+Once all the files are included, it's time to start serializing some data!
 
 ### FlatBufferBuilder
 
-Serialization in most languages uses a Builder object that manages the binary
-array that the data is serialized into. You first construct a new Builder (or
-resuse an existing one) and allocate some memory for it. The builder will automatically resize the buffer when necessary.
+Most languages use a Builder object for managing the binary array that the data
+is serialized into. The generated code usually wraps methods on the Builder
+object to provide an API taliored to the schema.
+
+First instantiate a Builder (or resuse an existing one) and allocate some memory
+for it. The builder will automatically resize the backing buffer when necessary.
 
 === "C++"
 
@@ -110,4 +120,140 @@ resuse an existing one) and allocate some memory for it. The builder will automa
 
 Once a Builder is available, data can be serialized to it.
 
-### Writing Data
+### Serializing Data
+
+FlatBuffers serializes data from leaf to root node (depth-first, pre-order
+traversal). So any reference type (e.g. `table`, `vector`, `string`) must be
+serialized before a reference to it can be made.
+
+In this tutorial, we are building `Monsters` and `Weapons` for a computer game,
+and a `Weapon` is represented by a flatbuffer `table` with some fields. One
+field is the `name` field, which is a `string`.
+
+```c title="monster.fbs" linenums="28"
+table Weapon {
+  name:string;
+  damage:short;
+}
+```
+
+#### Strings
+
+So to serialize a `Weapon`, we need to first serialize a string to use for the
+`name` field of the `Weapon` table. This is done through the Builder object's
+CreateString method:
+
+=== "C++"
+
+    ```c
+    flatbuffers::Offset<String> weapon_one_name = builder.CreateString("Sword");
+    flatbuffers::Offset<String> weapon_two_name = builder.CreateString("Axe");
+    ```
+
+=== "C#"
+
+    ```c#
+    Offset<String> weaponOneName = builder.CreateString("Sword");
+    Offset<String> weaponTwoName = builder.CreateString("Axe");
+    ```
+
+The returned value is just a numerical offset to where that data resides in the
+buffer. Think of it as a handle to that reference.
+
+#### Tables
+
+Now that we have some weapon names serialized, we can serialize some `Weapons`.
+Here we will use one of the generated helper functions that was emitted by the
+`flatc` compilation. The `CreateWeapon` function takes in the Builder object, as
+well as the offset to the weapon's name and a numerical value for the damage.
+
+=== "C++"
+
+    ```c
+    short weapon_one_damage = 3;
+    short weapon_two_damage = 5;
+
+    // Use the `CreateWeapon()` shortcut to create Weapons with all the fields set.
+    auto sword = CreateWeapon(builder, weapon_one_name, weapon_one_damage);
+    auto axe = CreateWeapon(builder, weapon_two_name, weapon_two_damage);
+    ```
+
+=== "C#"
+
+    ```c#
+    var weaponOneDamage = 3;
+    var weaponTwoDamage = 5;
+
+    // Use the `CreateWeapon()` helper function to create the weapons, since we set every field.
+    Offset<Weapon> sword = Weapon.CreateWeapon(builder, weaponOneName, (short)weaponOneDamage);
+    Offset<Weapon> axe = Weapon.CreateWeapon(builder, weaponTwoName, (short)weaponTwoDamage);
+    ```
+
+!!! info
+
+    These generated functions like `CreateWeapon` are just composed of various
+    Builder API methods. So its not required to use the generated code, but it
+    does make things much simplier and compact.
+
+Just like the `CreateString` methods, these table serialization methods return
+an offset to the location of the serialized `table`.
+
+Now that we have some `Weapons` serialized, we can serialize a `Monster` table.
+Looking at the schema again, this table has a lot more fields of various types.
+
+!!! note inline end
+
+    There is no prescribed ordering of serializing fields of a table, you could
+    serialize in any order you want. In fact, you could even serialize data for
+    other tables at the same time, you just might have to do more bookkeeping to
+    keep everything straight.
+
+```c title="monster.fbs" linenums="15"
+table Monster {
+  pos:Vec3;
+  mana:short = 150;
+  hp:short = 100;
+  name:string;
+  friendly:bool = false (deprecated);
+  inventory:[ubyte];
+  color:Color = Blue;
+  weapons:[Weapon];
+  equipped:Equipment;
+  path:[Vec3];
+}
+```
+
+#### Vectors
+
+The `weapons` field is a `vector` of `Weapon` tables. So we already have the
+`Weapons` serialized, so we just need to make a `vector` of those offsets. The
+Builder object provides multiple ways to create `vectors`
+
+=== "C++"
+
+    ```c
+    // Create a std::vector of the offsets we had previous made.
+    std::vector<flatbuffers::Offset<Weapon>> weapons_vector;
+    weapons_vector.push_back(sword);
+    weapons_vector.push_back(axe);
+
+    // Then serialize that std::vector into the buffer and again get an Offset
+    // to that vector. Use `auto` here since the full type is long, and it just a number.
+    auto weapons = builder.CreateVector(weapons_vector);
+    ```
+
+=== "C#"
+
+    ```c#
+    var weaps = new Offset<Weapon>[2];
+    weaps[0] = sword;
+    weaps[1] = axe;
+
+    // Pass the `weaps` array into the `CreateWeaponsVector()` method to create a FlatBuffer vector.
+    var weapons = Monster.CreateWeaponsVector(builder, weaps);
+    ```
+
+Lets serialize the other two vector fields while we are at it, the `inventory`
+field is just a vector of scalars, and the `path` field is a vector of structs
+(which are scalar data as well). So these vectors can be serialized a bit more
+directly.
