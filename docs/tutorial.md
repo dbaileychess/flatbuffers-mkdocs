@@ -32,8 +32,6 @@ schema will be used for this tutorial. This is part of the FlatBuffers
 [sample code](https://github.com/google/flatbuffers/tree/master/samples) to give
 complete sample binaries demonstrations.
 
-!!! bug "Get FlatBuffers schema syntax highlighting"
-
 FlatBuffers schema is a Interface Definition Language (IDL) that has a couple
 data structures, see the [schema](schema.md) documentation for detail
 description of the schema. Use the inline code annotations to get a brief
@@ -122,6 +120,8 @@ root_type Monster; //(14)!
 
 14. The root of the flatbuffer is always a `table`. This indicates the type of
     `table` the "entry" point of the flatbuffer will point to.
+
+!!! bug "Get FlatBuffers schema syntax highlighting"
 
 ## Compiling Schema to Code (`flatc`)
 
@@ -288,7 +288,7 @@ the weapon's name and a numerical value for the damage field.
 
 === "C++"
 
-    ```c
+    ```c++
     short weapon_one_damage = 3;
     short weapon_two_damage = 5;
 
@@ -355,7 +355,7 @@ The Builder provides multiple ways to create `vectors`.
 
 === "C++"
 
-    ```c
+    ```c++
     // Create a std::vector of the offsets we had previous made.
     std::vector<flatbuffers::Offset<Weapon>> weapons_vector;
     weapons_vector.push_back(sword);
@@ -384,3 +384,183 @@ While we are at it, let us serialize the other two vector fields: the
 `inventory` field is just a vector of scalars, and the `path` field is a vector
 of structs (which are scalar data as well). So these vectors can be serialized a
 bit more directly.
+
+=== "C++"
+
+    ```c++
+    // Construct an array of two `Vec3` structs.
+    Vec3 points[] = { Vec3(1.0f, 2.0f, 3.0f), Vec3(4.0f, 5.0f, 6.0f) };
+
+    // Serialize it as a vector of structs.
+    flatbuffers::Offset<flatbuffers::Vector<Vec3>> path =
+        builder.CreateVectorOfStructs(points, 2);
+
+    // Create a `vector` representing the inventory of the Orc. Each number
+    // could correspond to an item that can be claimed after he is slain.
+    unsigned char treasure[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    flatbuffers::Offset<flatbuffers::Vector<unsigned char>> inventory =
+        builder.CreateVector(treasure, 10);
+
+    ```
+
+=== "C#"
+
+    ```c#
+    // Start building a path vector of length 2.
+    Monster.StartPathVector(fbb, 2);
+
+    // Serialize the individual Vec3 structs
+    Vec3.CreateVec3(builder, 1.0f, 2.0f, 3.0f);
+    Vec3.CreateVec3(builder, 4.0f, 5.0f, 6.0f);
+
+    // End the vector to get the offset
+    Offset<Vector<Vec3>> path = fbb.EndVector();
+
+    // Create a `vector` representing the inventory of the Orc. Each number
+    // could correspond to an item that can be claimed after he is slain.
+    // Note: Since we prepend the bytes, this loop iterates in reverse order.
+    Monster.StartInventoryVector(builder, 10);
+    for (int i = 9; i >= 0; i--)
+    {
+        builder.AddByte((byte)i);
+    }
+    Offset<Vector<byte>> inventory = builder.EndVector();
+    ```
+
+#### Unions
+
+The last non-scalar data for the `Monster` table is the `equipped` `union`
+field. For this case, we will reuse an already serialized `Weapon` (the only
+type in the union), without needing to reserialize it. Union fields implicitly
+add a hidden `_type` field that stores the type of value stored in the union.
+When serializing a union, you must explicitly set this type field, along with
+providing the union value.
+
+We will also serialize the other scalar data at the same time, since we have all
+the necessary values and Offsets to make a `Monster`.
+
+=== "C++"
+
+    ```c++
+    // Create the remaing data needed for the Monster.
+    auto name = builder.CreateString("Orc");
+
+    // Create the position struct
+    auto position = Vec3(1.0f, 2.0f, 3.0f);
+
+    // Set his hit points to 300 and his mana to 150.
+    int hp = 300;
+    int mana = 150;
+
+    // Finally, create the monster using the `CreateMonster` helper function
+    // to set all fields.
+    //
+    // Here we set the union field by using the `.Union()` method of the
+    // `Offset<Weapon>` axe we already serialized above. We just have to specify
+    // which type of object we put in the union, and do that with the
+    // auto-generated `Equipment_Weapon` enum.
+    flatbuffers::Offset<Monster> orc =
+        CreateMonster(builder, &position, mana, hp, name, inventory,
+                      Color_Red, weapons, Equipment_Weapon, axe.Union(),
+                      path);
+
+    ```
+
+=== "C#"
+
+    ```c#
+    // Create the remaing data needed for the Monster.
+    var name = builder.CreateString("Orc");
+
+    // Create our monster using `StartMonster()` and `EndMonster()`.
+    Monster.StartMonster(builder);
+    Monster.AddPos(builder, Vec3.CreateVec3(builder, 1.0f, 2.0f, 3.0f));
+    Monster.AddHp(builder, (short)300);
+    Monster.AddName(builder, name);
+    Monster.AddInventory(builder, inv);
+    Monster.AddColor(builder, Color.Red);
+    Monster.AddWeapons(builder, weapons);
+    // For union fields, we explicitly add the auto-generated enum for the type
+    // of value stored in the union.
+    Monster.AddEquippedType(builder, Equipment.Weapon);
+    // And we just use the `.Value` property of the already serialized axe.
+    Monster.AddEquipped(builder, axe.Value); // Axe
+    Monster.AddPath(builder, path);
+    Offset<Monster> orc = Monster.EndMonster(builder);
+    ```
+
+!!! warning
+
+    When serializing tables, you must fully serialize it before attempting to
+    serialize another reference type. If you try to serialize in a nested
+    manner, you will get an assert/exception/panic depending on your language.
+
+### Finishing
+
+At this point, we have an offset to a `Monster` orc `table` serialized in the
+flatbuffer. The `root_type` of the schema is also a `Monster`, so we have
+everything we need to finish the serialization step.
+
+This is done by calling the approriate `finish` method on the Builder, passing
+in the orc offset to indicate this is the "entry" data struct when deserializing
+the buffer later.
+
+=== "C++"
+
+    ```c++
+    // Call `Finish()` to instruct the builder that this monster is complete.
+    // You could also call `FinishMonsterBuffer(builder, orc);`
+    builder.Finish(orc);
+    ```
+
+=== "C#"
+
+    ```c#
+    // Call `Finish()` to instruct the builder that this monster is complete.
+    // You could also call `Monster.FinishMonsterBuffer(builder, orc);`
+    builder.Finish(orc.Value);
+    ```
+
+Once you finish a Builder, you can no longer serialize more data to it.
+
+#### Buffer Access
+
+The flatbuffer is now ready to be stored somewhere, sent over the network,
+compressed, or whatever you would like to do with it. You access the raw buffer
+like so:
+
+=== "C++"
+
+    ```c++
+    // This must be called after `Finish()`.
+    uint8_t *buf = builder.GetBufferPointer();
+
+    // Returns the size of the buffer that `GetBufferPointer()` points to.
+    int size = builder.GetSize();
+    ```
+
+=== "C#"
+
+    ```c#
+    // This must be called after `Finish()`.
+    //
+    // The data in this ByteBuffer does NOT start at 0, but at buf.Position.
+    // The end of the data is marked by buf.Length, so the size is
+    // buf.Length - buf.Position.
+    FlatBuffers.ByteBuffer dataBuffer = builder.DataBuffer;
+
+    // Alternatively this copies the above data out of the ByteBuffer for you:
+    byte[] buf = builder.SizedByteArray();
+    ```
+
+Now you can write the bytes to a file or send them over the network. The buffer
+stays valid until the Builder is cleared or destroyed.
+
+!!! warning
+
+    Make sure your file mode (or transfer protocol) is set to BINARY, and not
+    TEXT. If you try to trasnfer a flatbuffer in TEXT mode, the buffer will be
+    corrupted and be hard to diagnose.
+
+## Deserialization
+
