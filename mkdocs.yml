@@ -7,7 +7,7 @@ theme:
     # Palette toggle for light mode
     - scheme: default
       toggle:
-        icon: material/brightness-7 
+        icon: material/brightness-7
         name: Switch to dark mode
 
     # Palette toggle for dark mode
@@ -16,10 +16,11 @@ theme:
         icon: material/brightness-4
         name: Switch to light mode
 
-
   features:
     # Allows content tabs to link together
     - content.tabs.link
+
+    # Expand nav folders by default
     - navigation.expand
 
     # Allows code block annotations
@@ -38,3 +39,10 @@ markdown_extensions:
       slugify: !!python/object/apply:pymdownx.slugs.slugify
         kwds:
           case: lower
+
+nav:
+  - Overview: "index.md"
+  - Tutorial: "tutorial.md"
+  - Building: "building.md"
+  - Schema: "schema.md"
+  - Grammar: "grammar.md"
