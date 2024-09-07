@@ -34,9 +34,94 @@ complete sample binaries demonstrations.
 
 !!! bug "Get FlatBuffers schema syntax highlighting"
 
+FlatBuffers schema is a Interface Definition Language (IDL) that has a couple
+data structures, see the [schema](schema.md) documentation for detail
+description of the schema. Use the inline code annotations to get a brief
+synposis of each part of the schema.
+
 ```c title="monster.fbs" linenums="1"
---8<-- "https://raw.githubusercontent.com/google/flatbuffers/master/samples/monster.fbs"
+// Example IDL file for our monster's schema.
+
+namespace MyGame.Sample; //(1)!
+
+enum Color:byte { Red = 0, Green, Blue = 2 } //(2)!
+
+// Optionally add more tables.
+union Equipment { Weapon } //(3)!
+
+struct Vec3 { //(4)!
+  x:float; //(5)!
+  y:float;
+  z:float;
+}
+
+table Monster { //(6)!
+  pos:Vec3; //(7)!
+  mana:short = 150; //(8)!
+  hp:short = 100;
+  name:string; //(9)!
+  friendly:bool = false (deprecated); //(10)!
+  inventory:[ubyte]; //(11)!
+  color:Color = Blue;
+  weapons:[Weapon]; //(12)!
+  equipped:Equipment; //(13)!
+  path:[Vec3];
+}
+
+table Weapon {
+  name:string;
+  damage:short;
+}
+
+root_type Monster; //(14)!
 ```
+
+1. FlatBuffers has support for namespaces to place the generated code into.
+   There is mixed level of support for namespaces (some languages don't have
+   namespaces), but for the C family of languages, it is fully supported.
+
+2. Enums definitions can be defined with the backing numerical type. Implicit
+   numbering is supported, so that `Green` would have a value of 1.
+
+3. A union represents a single value from a set of possible values. Its
+   effectively an enum (to represent the type actually store) and a value,
+   combined into one. In this example, the union is not very useful, since it
+   only has a single type.
+
+4. A struct is a collection of scalar fields with names. It is itself a scalar
+   type, which uses less memory and has faster lookup. However, once a struct is
+   defined, it cannot be changed. Use tables for data structures that can evolve
+   over time.
+
+5. FlatBuffers has the standard set of scalar numerical types, as well as
+   `bool`.
+
+6. Tables are the main data structure for grouping data together. It can evolve
+   by adding and deprecating fields over time, while perserving forward and
+   backwards compatibility.
+
+7. A field that happens to be a `struct`. This means the data of the `Vec3`
+   struct will be serialized inline in the table without any need for offset.
+
+8. Fields can be provided a default value. Default values can be configured to
+   not be serialized at all while still providing the default value while
+   deserializing. However, once set, a default value cannot be changed.
+
+9. A `string` field which points to a serialized string external to the table.
+
+10. A deprecated field that is no longer being used. This is used instead of
+    removing the field outright.
+
+11. A `vector` field that points to a vector of bytes. Like `strings`, the
+    vector data is serialized elsewhere and this field just stores an offset to
+    the vector.
+
+12. Vector of `tables` and `structs` are also possible.
+
+13. A field to a `union` type.
+
+14. The root of the flatbuffer is always a `table`. This indicates the type of
+    `table` the "entry" point of the flatbuffer will point to.
 
 ## Compiling Schema to Code (`flatc`)
 

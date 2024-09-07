@@ -21,6 +21,9 @@ theme:
     # Allows content tabs to link together
     - content.tabs.link
 
+    # Allows code block annotations
+    - content.code.annotate
+
 markdown_extensions:
   - admonition
   - pymdownx.critic
