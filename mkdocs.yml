@@ -16,11 +16,21 @@ theme:
         icon: material/brightness-4
         name: Switch to light mode
 
+
   features:
     # Allows content tabs to link together
     - content.tabs.link
 
 markdown_extensions:
+  - admonition
+  - pymdownx.critic
+  - pymdownx.details
+  - pymdownx.snippets:
+      # Allows direct embedded of remote files
+      url_download: true
   - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
