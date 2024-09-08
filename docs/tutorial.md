@@ -33,9 +33,9 @@ schema will be used for this tutorial. This is part of the FlatBuffers
 complete sample binaries demonstrations.
 
 FlatBuffers schema is a Interface Definition Language (IDL) that has a couple
-data structures, see the [schema](schema.md) documentation for detail
-description of the schema. Use the inline code annotations to get a brief
-synposis of each part of the schema.
+data structures, see the [schema](schema.md) documentation for a detail
+description. Use the inline code annotations to get a brief synopsis of each
+part of the schema.
 
 ```c title="monster.fbs" linenums="1"
 // Example IDL file for our monster's schema.
@@ -91,11 +91,13 @@ root_type Monster; //(14)!
    defined, it cannot be changed. Use tables for data structures that can evolve
    over time.
 
-5. FlatBuffers has the standard set of scalar numerical types, as well as
-   `bool`.
+5. FlatBuffers has the standard set of scalar numerical types (`int8`, `int16`,
+   `int32`, `int64`, `uint8`, `uint16`, `uint32`, `uint64`, `float`, `double`),
+   as well as `bool`. Note, scalars are fixed width, `varints` are not
+   supported.
 
 6. Tables are the main data structure for grouping data together. It can evolve
-   by adding and deprecating fields over time, while perserving forward and
+   by adding and deprecating fields over time, while preserving forward and
    backwards compatibility.
 
 7. A field that happens to be a `struct`. This means the data of the `Vec3`
@@ -131,12 +133,22 @@ to work with. This compilation is done by the [FlatBuffers Compiler](flatc.md)
 
 ### Building `flatc`
 
-Assuming a normal unix-based build environment:
+FlatBuffers uses [`cmake`](https://cmake.org/) to build projects files for your
+environment.
 
-```sh
-cmake -g "Unix Makefiles"
-make flatc
-```
+=== "Unix"
+
+    ```sh
+    cmake -G "Unix Makefiles"
+    make flatc
+    ```
+
+=== "Windows"
+
+    ```sh
+    cmake -G "Visual Studio 16 2019"
+    msbuild.exe FlatBuffers.sln
+    ```
 
 See the documentation on [building](building.md) for more details and other
 environments. Some languages also include a prebuilt `flatc` via their package
@@ -146,7 +158,7 @@ manager.
 
 To compile the schema, invoke `flatc` with the schema file and the language
 flags you wish to generate code for. This compilation will generate files that
-you include in your application code. These files provide convient APIs for
+you include in your application code. These files provide convenient APIs for
 serializing and deserializing the flatbuffer binary data.
 
 === "C++"
@@ -222,9 +234,9 @@ serialize the data from leaf to root node, as will be shown below.
 Most languages use a Builder object for managing the binary array that the data
 is serialized into. It provides an API for serializing data, as well as keeps
 track of some internal state. The generated code wraps methods on the Builder
-object to provide an API taliored to the schema.
+object to provide an API tailored to the schema.
 
-First instantiate a Builder (or resuse an existing one) and specify some memory
+First instantiate a Builder (or reuse an existing one) and specify some memory
 for it. The builder will automatically resize the backing buffer when necessary.
 
 === "C++"
@@ -319,7 +331,7 @@ the weapon's name and a numerical value for the damage field.
 
     The generated functions from `flatc`, like `CreateWeapon`, are just composed
     of various Builder API methods. So its not required to use the generated
-    code, but it does make things much simplier and compact.
+    code, but it does make things much simpler and compact.
 
 Just like the `CreateString` methods, the table serialization functions return
 an offset to the location of the serialized `Weapon` table.
@@ -445,7 +457,7 @@ the necessary values and Offsets to make a `Monster`.
 === "C++"
 
     ```c++
-    // Create the remaing data needed for the Monster.
+    // Create the remaining data needed for the Monster.
     auto name = builder.CreateString("Orc");
 
     // Create the position struct
@@ -472,7 +484,7 @@ the necessary values and Offsets to make a `Monster`.
 === "C#"
 
     ```c#
-    // Create the remaing data needed for the Monster.
+    // Create the remaining data needed for the Monster.
     var name = builder.CreateString("Orc");
 
     // Create our monster using `StartMonster()` and `EndMonster()`.
@@ -500,13 +512,13 @@ the necessary values and Offsets to make a `Monster`.
 
 ### Finishing
 
-At this point, we have an offset to a `Monster` orc `table` serialized in the
-flatbuffer. The `root_type` of the schema is also a `Monster`, so we have
-everything we need to finish the serialization step.
+At this point, we have serialized a `Monster` we've named "orc" to the
+flatbuffer and have its offset. The `root_type` of the schema is also a
+`Monster`, so we have everything we need to finish the serialization step.
 
-This is done by calling the approriate `finish` method on the Builder, passing
-in the orc offset to indicate this is the "entry" data struct when deserializing
-the buffer later.
+This is done by calling the appropriate `finish` method on the Builder, passing
+in the orc offset to indicate this `table` is the "entry" point when
+deserializing the buffer later.
 
 === "C++"
 
@@ -562,7 +574,7 @@ stays valid until the Builder is cleared or destroyed.
 !!! warning "BINARY Mode"
 
     Make sure your file mode (or transfer protocol) is set to BINARY, and not
-    TEXT. If you try to trasnfer a flatbuffer in TEXT mode, the buffer will be
+    TEXT. If you try to transfer a flatbuffer in TEXT mode, the buffer will be
     corrupted and be hard to diagnose.
 
 ## Deserialization
@@ -577,16 +589,17 @@ stays valid until the Builder is cleared or destroyed.
     data from a binary flatbuffer.
 
 Now that we have successfully create an orc FlatBuffer, the data can be saved,
-sent over a newtork, etc. At some point, the buffer will be accessed to obtain
+sent over a network, etc. At some point, the buffer will be accessed to obtain
 the underlying data.
 
-The same setup for the application is needed for deserilization (see
-[application integration](#application-integration)).
+The same application setup used for serialization is needed for deserialization
+(see [application integration](#application-integration)).
 
 ### Root Access
 
 All access to the data in the flatbuffer must first go through the root object.
-The generated code provides functions to get the root object given the buffer.
+There is only one root object per flatbuffer. The generated code provides
+functions to get the root object given the buffer.
 
 === "C++"
 
@@ -617,9 +630,9 @@ means the backing buffer must remain alive for the duration of the views.
 
 ### Table Accessors
 
-If you look in the generated files from the schema compiler, you will see it
-generated accessors for all non-`deprecated` fields of a `table`. For example,
-the accessors of the `Monster` root table would look like:
+If you look in the generated files emitted by `flatc`, you will see it generated
+, for each `table`, accessors of all its non-`deprecated` fields. For example,
+some of the accessors of the `Monster` root table would look like:
 
 === "C++"
 
@@ -640,15 +653,15 @@ the accessors of the `Monster` root table would look like:
     var name = monster.Name;
     ```
 
-These accessors should hold `300`, `150`, and `"Orc"` respectively.
+These accessors should hold the values `300`, `150`, and `"Orc"` respectively.
 
 !!! note "Default Values"
 
     The default value of `150` wasn't stored in the `mana` field, but we are
-    still able to retreive it. That is because the generated accesors return a
+    still able to retrieve it. That is because the generated accessors return a
     hard-coded default value when it doesn't find the value in the buffer.
 
-#### Subobject Accessors
+#### Sub-object Accessors
 
 To access sub-objects, in the case of our `pos`, which is a `Vec3`:
 
