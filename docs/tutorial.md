@@ -628,7 +628,7 @@ In most languages, the returned object is just a "view" of the data with helpful
 accessors. Data is typically not copied out of the backing buffer. This also
 means the backing buffer must remain alive for the duration of the views.
 
-### Table Accessors
+### Table Access
 
 If you look in the generated files emitted by `flatc`, you will see it generated
 , for each `table`, accessors of all its non-`deprecated` fields. For example,
@@ -661,9 +661,12 @@ These accessors should hold the values `300`, `150`, and `"Orc"` respectively.
     still able to retrieve it. That is because the generated accessors return a
     hard-coded default value when it doesn't find the value in the buffer.
 
-#### Sub-object Accessors
+#### Nested Object Access
 
-To access sub-objects, in the case of our `pos`, which is a `Vec3`:
+Accessing nested objects is very similar, with the nested field pointing to
+another object type. Be careful, the field could be `null` if not present.
+
+For example, accessing the `pos` `struct`, which is type `Vec3` you would do:
 
 === "C++"
 
@@ -683,4 +686,80 @@ To access sub-objects, in the case of our `pos`, which is a `Vec3`:
     var z = pos.Z;
     ```
 
-`x`, `y`, and `z` will contain `1.0`, `2.0`, and `3.0` respectively.
+Where `x`, `y`, and `z` will contain `1.0`, `2.0`, and `3.0` respectively.
+
+### Vector Access
+
+Similarly, we can access elements of the `inventory` `vector` by indexing it.
+You can also iterate over the length of the vector.
+
+=== "C++"
+
+    ```c++
+    flatbuffers::Vector<unsigned char> inv = monster->inventory();
+    auto inv_len = inv->size();
+    auto third_item = inv->Get(2);
+    ```
+
+=== "C#"
+
+    ```c#
+    int invLength = monster.InventoryLength;
+    var thirdItem = monster.Inventory(2);
+    ```
+
+For vectors of tables, you can access the elements like any other vector, except
+you need to handle the result as a FlatBuffer table. Here we iterate over the
+`weapons` vector that is houses `Weapon` `tables`.
+
+=== "C++"
+
+    ```c++
+    flatbuffers::Vector<Weapon> weapons = monster->weapons();
+    auto weapon_len = weapons->size();
+    auto second_weapon_name = weapons->Get(1)->name()->str();
+    auto second_weapon_damage = weapons->Get(1)->damage()
+    ```
+
+=== "C#"
+
+    ```c#
+    int weaponsLength = monster.WeaponsLength;
+    var secondWeaponName = monster.Weapons(1).Name;
+    var secondWeaponDamage = monster.Weapons(1).Damage;
+    ```
+
+### Union Access
+
+Lastly , we can access our `equipped` `union` field. Just like when we created
+the union, we need to get both parts of the union: the type and the data.
+
+We can access the type to dynamically cast the data as needed (since the union
+only stores a FlatBuffer `table`).
+
+=== "C++"
+
+    ```c++
+    auto union_type = monster.equipped_type();
+ 
+    if (union_type == Equipment_Weapon) {
+         // Requires `static_cast` to type `const Weapon*`.
+        auto weapon = static_cast<const Weapon*>(monster->equipped());
+ 
+        auto weapon_name = weapon->name()->str(); // "Axe"
+        auto weapon_damage = weapon->damage();    // 5
+    }
+    ```
+
+=== "C#"
+
+    ```c#
+    var unionType = monster.EquippedType;
+ 
+    if (unionType == Equipment.Weapon) {
+        var weapon = monster.Equipped<Weapon>().Value;
+ 
+        var weaponName = weapon.Name;     // "Axe"
+        var weaponDamage = weapon.Damage; // 5
+    }
+    ```
