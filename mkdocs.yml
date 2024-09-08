@@ -50,7 +50,9 @@ markdown_extensions:
 nav:
   - Overview: "index.md"
   - Tutorial: "tutorial.md"
-  - Building: "building.md"
-  - Schema: 
+  - Compiler (flatc): 
+    - Building: "building.md"
+    - Using: "flatc.md"
+  - Schema (.fbs): 
     - Overview: "schema.md"
     - Grammar: "grammar.md"
