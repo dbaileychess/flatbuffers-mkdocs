@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+         <loc>https://dbaileychess.github.io/flatbuffers-mkdocs/</loc>
+         <lastmod>2024-09-12</lastmod>
+    </url>
+    <url>
+         <loc>https://dbaileychess.github.io/flatbuffers-mkdocs/building/</loc>
+         <lastmod>2024-09-12</lastmod>
+    </url>
+    <url>
+         <loc>https://dbaileychess.github.io/flatbuffers-mkdocs/evolution/</loc>
+         <lastmod>2024-09-12</lastmod>
+    </url>
+    <url>
+         <loc>https://dbaileychess.github.io/flatbuffers-mkdocs/flatc/</loc>
+         <lastmod>2024-09-12</lastmod>
+    </url>
+    <url>
+         <loc>https://dbaileychess.github.io/flatbuffers-mkdocs/grammar/</loc>
+         <lastmod>2024-09-12</lastmod>
+    </url>
+    <url>
+         <loc>https://dbaileychess.github.io/flatbuffers-mkdocs/schema/</loc>
+         <lastmod>2024-09-12</lastmod>
+    </url>
+    <url>
+         <loc>https://dbaileychess.github.io/flatbuffers-mkdocs/tutorial/</loc>
+         <lastmod>2024-09-12</lastmod>
+    </url>
+</urlset>
