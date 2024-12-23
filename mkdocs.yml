@@ -3,6 +3,7 @@ site_url: https://dbaileychess.github.io/flatbuffers-mkdocs/
 theme:
   name: material
   logo: assets/flatbuffers_logo.svg
+  custom_dir: overrides
   palette:
     # Palette toggle for light mode
     - scheme: default
@@ -25,7 +26,9 @@ theme:
   
     # Expand nav folders by default
     - navigation.expand
-
+    
+    # Auto hide the header after scrolling
+    - header.autohide
 
 
 markdown_extensions:
